@@ -1,0 +1,28 @@
+[package]
+name = "hashmap"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# cargo run --release --bin <name of bin>
+# target/release/<name of bin>
+
+[dependencies]
+
+[[bin]]
+name = "usecase1"
+path = "src/bin/usecase1.rs"
+
+[[bin]]
+name = "usecase2"
+path = "src/bin/usecase2.rs"
+
+[[bin]]
+name = "usecase3"
+path = "src/bin/usecase3.rs"
+
+[[bin]]
+name = "usecase4"
+path = "src/bin/usecase4.rs"
+
