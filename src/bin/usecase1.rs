@@ -1,11 +1,11 @@
 use hashmap::dummy::*;
 
 fn main() {
-// Type inference lets us omit an explicit type signature (which
-// would be `HashMap<String, String>` in this example).
+    // Type inference lets us omit an explicit type signature (which
+    // would be `HashMap<String, String>` in this example).
     let mut book_reviews = HashMap::new();
 
-// Review some books.
+    // Review some books.
     book_reviews.insert(
         "Adventures of Huckleberry Finn".to_string(),
         "My favorite book.".to_string(),
@@ -23,28 +23,29 @@ fn main() {
         "Eye lyked it alot.".to_string(),
     );
 
-// Check for a specific one.
-// When collections store owned values (String), they can still be
-// queried using references (&str).
+    // Check for a specific one.
+    // When collections store owned values (String), they can still be
+    // queried using references (&str).
     if !book_reviews.contains_key("Les Misérables") {
-        println!("We've got {} reviews, but Les Misérables ain't one.",
-                 book_reviews.len());
+        println!(
+            "We've got {} reviews, but Les Misérables ain't one.",
+            book_reviews.len()
+        );
     }
 
-// oops, this review has a lot of spelling mistakes, let's delete it.
+    // oops, this review has a lot of spelling mistakes, let's delete it.
     book_reviews.remove("The Adventures of Sherlock Holmes");
 
-// Look up the values associated with some keys.
+    // Look up the values associated with some keys.
     let to_find = ["Pride and Prejudice", "Alice's Adventure in Wonderland"];
     for &book in &to_find {
         match book_reviews.get(book) {
             Some(review) => println!("{book}: {review}"),
-            None => println!("{book} is unreviewed.")
+            None => println!("{book} is unreviewed."),
         }
     }
 
-
-// Iterate over everything.
+    // Iterate over everything.
     for (book, review) in &book_reviews {
         println!("{}: \"{}\"", book, review);
     }

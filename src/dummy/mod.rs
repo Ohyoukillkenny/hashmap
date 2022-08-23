@@ -10,7 +10,7 @@ pub struct HashMap<K, V> {
     num_items: usize,
 }
 
-impl <K, V> HashMap<K, V> {
+impl<K, V> HashMap<K, V> {
     pub fn new() -> Self {
         HashMap {
             buckets: vec![],
@@ -19,8 +19,9 @@ impl <K, V> HashMap<K, V> {
     }
 }
 
-impl <K, V> HashMap<K, V>
-where K: Hash + Eq
+impl<K, V> HashMap<K, V>
+where
+    K: Hash + Eq,
 {
     fn get_bucket_index<Q>(&mut self, key: &Q) -> Option<usize>
     where
@@ -58,14 +59,17 @@ where K: Hash + Eq
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V>
-    where K: Hash + Eq,
+    where
+        K: Hash + Eq,
     {
         if self.buckets.is_empty() || self.num_items > 3 * self.buckets.len() / 4 {
             self.resize();
         }
 
         // hash the key
-        let bucket_index = self.get_bucket_index(&key).expect("bucket is empty handled above");
+        let bucket_index = self
+            .get_bucket_index(&key)
+            .expect("bucket is empty handled above");
         let bucket = &mut self.buckets[bucket_index];
         for &mut (ref ekey, ref mut eval) in bucket.iter_mut() {
             if ekey == &key {
@@ -102,9 +106,9 @@ where K: Hash + Eq
     }
 
     pub fn remove<Q>(&mut self, key: &Q) -> Option<V>
-        where
-            K: Borrow<Q>,
-            Q: Hash + Eq + ?Sized,
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
     {
         let bucket_index = self.get_bucket_index(key)?;
         let bucket = &mut self.buckets[bucket_index];
@@ -119,29 +123,27 @@ where K: Hash + Eq
 // implement the hashmap as an iterator
 
 // we first implement the iter of key and val with reference
-pub struct Iter<'a, K: 'a, V: 'a> {
+pub struct RefIter<'a, K: 'a, V: 'a> {
     map: &'a HashMap<K, V>,
     bucket_index: usize,
     at: usize,
 }
 
-impl <'a, K, V> Iterator for Iter<'a, K, V>{
+impl<'a, K, V> Iterator for RefIter<'a, K, V> {
     type Item = (&'a K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.map.buckets.get(self.bucket_index) {
-                Some(bucket) => {
-                    match bucket.get(self.at) {
-                        Some(&(ref k, ref v)) => {
-                            self.at += 1;
-                            break Some((k, v));
-                        },
-                        None => {
-                            self.bucket_index += 1;
-                            self.at = 0;
-                            continue;
-                        }
+                Some(bucket) => match bucket.get(self.at) {
+                    Some(&(ref k, ref v)) => {
+                        self.at += 1;
+                        break Some((k, v));
+                    }
+                    None => {
+                        self.bucket_index += 1;
+                        self.at = 0;
+                        continue;
                     }
                 },
                 None => break None,
@@ -150,12 +152,12 @@ impl <'a, K, V> Iterator for Iter<'a, K, V>{
     }
 }
 
-impl <'a, K, V> IntoIterator for &'a HashMap<K, V> {
+impl<'a, K, V> IntoIterator for &'a HashMap<K, V> {
     type Item = (&'a K, &'a V);
-    type IntoIter = Iter<'a, K,V>;
+    type IntoIter = RefIter<'a, K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter {
+        RefIter {
             map: self,
             bucket_index: 0,
             at: 0,
@@ -163,26 +165,24 @@ impl <'a, K, V> IntoIterator for &'a HashMap<K, V> {
     }
 }
 
-pub struct IntoIter<K, V> {
+pub struct ItemIter<K, V> {
     map: HashMap<K, V>,
     bucket_index: usize,
 }
 
-impl <K,V> Iterator for IntoIter<K, V>{
+impl<K, V> Iterator for ItemIter<K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.map.buckets.get_mut(self.bucket_index) {
-                Some(bucket) => {
-                    match bucket.pop() {
-                        Some(x) => {
-                            break Some(x);
-                        },
-                        None => {
-                            self.bucket_index += 1;
-                            continue;
-                        }
+                Some(bucket) => match bucket.pop() {
+                    Some(x) => {
+                        break Some(x);
+                    }
+                    None => {
+                        self.bucket_index += 1;
+                        continue;
                     }
                 },
                 None => break None,
@@ -191,18 +191,17 @@ impl <K,V> Iterator for IntoIter<K, V>{
     }
 }
 
-impl <K, V> IntoIterator for HashMap<K, V> {
+impl<K, V> IntoIterator for HashMap<K, V> {
     type Item = (K, V);
-    type IntoIter = IntoIter<K,V>;
+    type IntoIter = ItemIter<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
+        ItemIter {
             map: self,
             bucket_index: 0,
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
