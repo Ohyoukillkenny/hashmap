@@ -19,6 +19,53 @@ impl<K, V> HashMap<K, V> {
     }
 }
 
+// now implement entry for in-place modification
+
+pub struct OccupiedEntry<'a, K: 'a, V: 'a> {
+    entry: &'a mut (K, V), // address of a kv pair
+}
+
+pub struct VacantEntry<'a, K: 'a, V: 'a> {
+    key: K,
+    map: &'a mut HashMap<K, V>,
+    bucket_index: usize,
+}
+
+impl <'a, K, V> VacantEntry<'a, K, V>
+where K: Hash + Eq
+{
+    pub fn insert(self, val: V) -> &'a mut V {
+        self.map.buckets[self.bucket_index].push((self.key, val));
+        self.map.num_items += 1;
+        &mut self.map.buckets[self.bucket_index].last_mut().unwrap().1
+    }
+}
+
+pub enum Entry<'a, K: 'a, V: 'a> {
+    Occupied(OccupiedEntry<'a, K, V>),
+    Vacant(VacantEntry<'a, K, V>),
+}
+
+impl <'a, K, V> Entry<'a, K, V>
+where K: Hash + Eq
+{
+    pub fn or_insert(self, default: V) -> &'a mut V {
+        match self {
+            Entry::Occupied(e) => &mut e.entry.1,
+            Entry::Vacant(e) => e.insert(default),
+        }
+    }
+
+    pub fn or_insert_with<F>(self, default: F) -> &'a mut V
+    where F: FnOnce() -> V,
+    {
+        match self {
+            Entry::Occupied(e) => &mut e.entry.1,
+            Entry::Vacant(e) => e.insert(default()),
+        }
+    }
+}
+
 impl<K, V> HashMap<K, V>
 where
     K: Hash + Eq,
@@ -118,6 +165,28 @@ where
         self.num_items -= 1;
         Some(bucket.swap_remove(i).1)
     }
+
+    pub fn entry<'a>(&'a mut self, key: K) -> Entry<'a, K, V> {
+        if self.buckets.is_empty() || self.num_items > 3 * self.buckets.len() / 4 {
+            self.resize();
+        }
+        // may consider entry as adding a new key-val pair to the hashmap
+        let bucket_index = self
+            .get_bucket_index(&key)
+            .expect("bucket is empty handled above");
+
+        match self.buckets[bucket_index].iter().position(|&(ref ekey, _)| ekey == &key) {
+            Some(at) => Entry::Occupied(OccupiedEntry{
+                entry: &mut self.buckets[bucket_index][at],
+            }),
+            None => Entry::Vacant(VacantEntry{
+                key,
+                map: self,
+                bucket_index
+            })
+        }
+    }
+
 }
 
 // implement the hashmap as an iterator
@@ -203,6 +272,21 @@ impl<K, V> IntoIterator for HashMap<K, V> {
     }
 }
 
+// implement FromIterator so that we can collect items
+impl<K, V> FromIterator<(K, V)> for HashMap<K, V>
+where K: Hash + Eq,
+{
+    fn from_iter<T>(iter: T) -> Self
+    where T: IntoIterator<Item=(K, V)>,
+    {
+        let mut map = HashMap::new();
+        for (k, v) in iter {
+            map.insert(k, v);
+        }
+        map
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -252,5 +336,13 @@ mod tests {
             items += 1;
         }
         assert_eq!(items, 4);
+    }
+
+    #[test]
+    fn empty_hashmap() {
+        let mut map = HashMap::<&str, &str>::new();
+        assert_eq!(map.contains_key("k"), false);
+        assert_eq!(map.get("k"), None);
+        assert_eq!(map.remove("k"), None);
     }
 }
